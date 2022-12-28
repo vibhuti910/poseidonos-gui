@@ -35,6 +35,7 @@ import formatBytes from '../../utils/format-bytes';
 
 export const initialState = {
     ssds: [],
+    presets:[],
     arrayname: "",
     arrayMap: {},
     config: {},
@@ -383,6 +384,12 @@ const storageReducer = (state = initialState, action) => {
                     ...action.payload,
                     ...details
                 }
+            }
+        }
+        case actionTypes.GET_PRESET_DATA: {
+            return{
+                ...state,
+                presets: action.payload
             }
         }
         default:

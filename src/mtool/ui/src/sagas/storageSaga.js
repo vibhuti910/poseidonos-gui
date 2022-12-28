@@ -938,6 +938,44 @@ function* deleteArray(action) {
   }
 }
 
+function* deletePreset(action){
+  try{
+    // const presetName = yield select(preset)
+    const presetName = action.payload
+    console.log(presetName['presetDelete'])
+    const response = yield call(
+      [axios, axios.post],
+      `/api/v1.0/delete_preset/${presetName['presetDelete']}`,
+      action.payload,
+      {
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "x-access-token": localStorage.getItem("token"),
+        },
+      }
+    );
+    
+    if (response.status === 200 && response.data)
+    {
+      yield put(
+        actionCreators.fetchPresetDetails(response.data)
+      );
+    }
+  }catch (error) {
+    yield put(
+      actionCreators.showStorageAlert({
+        errorMsg: "Preset deletion failed",
+        alertType: "alert",
+        alertTitle: "Delete Preset"
+      })
+    );
+  } finally {
+    console.log("Failed")
+  }
+
+}
+
 function* deleteVolumes(action) {
   try {
     const arrayName = yield select(arrayname)
@@ -1027,9 +1065,9 @@ function* createArray(action) {
       ) {
         yield put(
           actionCreators.showStorageAlert({
-            errorMsg: "Array created successfully",
+            errorMsg: "Array created successfully. Do you want to save the preset?",
             alertTitle: "Create Array",
-            alertType: "info",
+            alertType: "confirm",
             errorCode: "",
             link: `/storage/array/manage?array=${action.payload.arrayname}`,
             linkText: "Manage Array"
@@ -1072,6 +1110,126 @@ function* createArray(action) {
     yield fetchDevices();
     yield fetchArray();
     yield put(actionCreators.stopStorageLoader());
+  }
+}
+function* savePreset(action){
+  try{
+    console.log("In this section of the code ###########################################")
+    console.log(action)
+    console.log(action.payload)
+    const specialChars = `\`!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`;
+    if( action.payload.presetName === '' ){
+      yield put(
+        actionCreators.showStorageAlert({
+          alertType: "alert",
+          errorMsg: "Preset name cannot be empty.",
+          errorCode: "",
+          alertTitle: "Error in Saving the Preset!"
+        })
+      );
+    }
+    else if( action.payload.presetName.length >= 250 ){
+      yield put(
+        actionCreators.showStorageAlert({
+          alertType: "alert",
+          errorMsg: "Preset name exceeded the maximum length",
+          errorCode: "",
+          alertTitle: "Error in Saving the Preset!"
+        })
+      );
+    }
+    else if(specialChars.split('').some( specialChars => {
+      if(action.payload.presetName.includes(specialChars)){
+        return true;
+      }
+      return false;
+    })){
+      yield put(
+        actionCreators.showStorageAlert({
+          alertType: "alert",
+          errorMsg: "Preset name should not contain special characters",
+          errorCode: "",
+          alertTitle: "Error in Saving the Preset!"
+        })
+      );
+    }
+    else{
+      console.log("Before getting response response")
+    yield put(actionCreators.startStorageLoader("Saving Preset"));
+    const response = yield call(
+      [axios, axios.post],
+      "/api/v1.0/save_preset/",
+      {
+        ...action.payload,
+      },
+      {
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "x-access-token": localStorage.getItem("token"),
+        },
+      }
+    );
+    console.log("After getting response")
+    console.log(response);
+    if( response.status == 200){
+      console.log("No hereeeeeeeeeeeee", response)
+        action.payload.setState({confirmOpen: false});
+        yield getPresetData();
+    }
+    else if (response.status == 399){
+      yield put(
+        actionCreators.showStorageAlert({
+          alertType: "alert",
+          errorMsg: "Duplicate Preset name entry.",
+          errorCode: "",
+          alertTitle: "Error in Saving the Preset!"
+        })
+      );
+    }
+  }
+  }catch (error) {
+    console.log(error)
+    yield put(
+      actionCreators.showStorageAlert({
+        alertType: "alert",
+        errorMsg: error && error.response ? error.response.data : "Preset Save failed",
+        errorCode: "",
+        alertTitle: "Error in Saving the Preset"
+      })
+    );
+  } finally {
+    yield put(actionCreators.stopStorageLoader());
+    }
+}
+
+function* getPresetData(action){
+  try{
+    console.log("Before getting preset Data")
+    const response = yield call(
+      [axios, axios.get],
+      "/api/v1/get_preset_data/",
+      {
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "x-access-token": localStorage.getItem("token"),
+        },
+      }
+    );
+    console.log("Before getting preset Data")
+    if (response.status === 200 && response.data)
+    {
+      console.log("Before getting preset Data")
+      yield put(
+        actionCreators.fetchPresetDetails(response.data)
+      );
+    }
+    console.log("Before getting preset Data")
+  }catch(error){
+    console.log(error);
+  }finally{
+    console.log("Finally");
   }
 }
 
@@ -1168,7 +1326,7 @@ function* autoCreateArray(action) {
         yield put(
           actionCreators.showStorageAlert({
             alertType: "alert",
-            errorMsg: "Error in Array Creation",
+            errorMsg: "Error in Array Creation 1",
             errorCode: `${response.data.result.status.description}. ${response.data.result.status.solution}`,
             alertTitle: "Create Array",
           })
@@ -1178,7 +1336,7 @@ function* autoCreateArray(action) {
       yield put(
         actionCreators.showStorageAlert({
           alertType: "alert",
-          errorMsg: "Error in Array Creation",
+          errorMsg: "Error in Array Creation 2",
           errorCode:
             response.data && response.data.result
               ? response.data.result
@@ -1195,7 +1353,7 @@ function* autoCreateArray(action) {
         alertType: "alert",
         errorMsg: error && error.response ? error.response.data : "Array Creation failed",
         errorCode: "",
-        alertTitle: "Error in Array Creation"
+        alertTitle: "Error in Array Creation 3"
       })
     );
   } finally {
@@ -1843,11 +2001,14 @@ export default function* storageWatcher() {
   yield takeEvery(actionTypes.SAGA_FETCH_VOLUMES, fetchVolumes);
   yield takeEvery(actionTypes.SAGA_DELETE_VOLUMES, deleteVolumes);
   yield takeEvery(actionTypes.SAGA_CREATE_ARRAY, createArray);
+  yield takeEvery(actionTypes.SAGA_SAVE_PRESET, savePreset);
+  yield takeEvery(actionTypes.SAGA_GET_PRESET_DATA, getPresetData);
   yield takeEvery(actionTypes.SAGA_AUTO_CREATE_ARRAY, autoCreateArray);
   yield takeEvery(actionTypes.SAGA_FETCH_DEVICE_DETAILS, fetchDeviceDetails);
   yield takeEvery(actionTypes.SAGA_UPDATE_VOLUME, updateVolume);
   yield takeEvery(actionTypes.SAGA_RESET_AND_UPDATE_VOLUME, resetAndUpdateVolume);
   yield takeEvery(actionTypes.SAGA_CREATE_DISK, createDisk);
+  yield takeEvery(actionTypes.SAGA_DELETE_PRESET, deletePreset);
   // yield takeEvery(actionTypes.SAGA_ATTACH_DISK, attachDisk);
   // yield takeEvery(actionTypes.SAGA_DETACH_DISK, detachDisk);
   yield takeEvery(actionTypes.SAGA_ADD_SPARE_DISK, addSpareDisk);
