@@ -387,6 +387,9 @@ function AdvanceCreateVolume(props) {
             }}
             className={classes.unitSelect}
           >
+            <MenuItem value="MB" data-testid="mb">
+              MB
+            </MenuItem>
             <MenuItem value="GB" data-testid="gb">
               GB
             </MenuItem>
@@ -778,7 +781,7 @@ function AdvanceCreateVolume(props) {
 
     const isGreaterThanEqualTo = (param) => {
       if (typeof (param) === 'number') return false;
-      const max = "18446744073709551";
+      const max = "18446744073709552";
       if (param.length < max.length) return false;
       if (param.length > max.length) return true;
 
@@ -806,7 +809,7 @@ function AdvanceCreateVolume(props) {
     else if ((props.maxbw > 0 && props.maxbw < 10) || props.maxbw > 17592186044415)
       errorDesc = "Max Bandwidth should be in the range 10 ~ 17592186044415. Please input 0, for no limit for qos or Maximum";
     else if ((props.maxiops > 0 && props.maxiops < 10) || isGreaterThanEqualTo(props.maxiops))
-      errorDesc = "Max IOPS should be in the range 10 ~ 18446744073709550. Please input 0, for no limit for qos or Maximum";
+      errorDesc = "Max IOPS should be in the range 10 ~ 18446744073709551. Please input 0, for no limit for qos or Maximum";
     else if (props.minvalue.length === 0)
       errorDesc = "Please Enter Minimum IOPS/BW or set 0 for no Minimum IOPS/BW"
     else if (props.minvalue < 0)
@@ -886,7 +889,7 @@ function AdvanceCreateVolume(props) {
         {props.volume_count > 1 &&
           <Typography className={classes.previewElement}>Start Suffix Value : {props.volume_suffix}</Typography>
         }
-        {props.volume_size === 0 ? (
+        {parseFloat(props.volume_size) === 0.0 ? (
           <Typography className={classes.previewElement}>Volume Size : Remaining space in the Array</Typography>
         ) : (
           <Typography className={classes.previewElement}>Volume Size : {props.volume_size} {props.volume_units}</Typography>

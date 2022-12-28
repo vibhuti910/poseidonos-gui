@@ -43,11 +43,11 @@ from rest.rest_api.array.array import create_arr, arr_info, get_arr_status
 from util.com.common import get_ip_address, get_hostname
 from rest.rest_api.system.system import fetch_system_state
 from rest.rest_api.device.device import list_devices, get_disk_details
-from rest.rest_api.telemetry.telemetry import set_telemetry_configuration, check_telemetry_endpoint
+from rest.rest_api.telemetry.telemetry import set_telemetry_configuration, reset_telemetry_configuration, check_telemetry_endpoint
 #from rest.rest_api.logmanager.logmanager import get_bmc_logs
 #from rest.rest_api.logmanager.logmanager import get_ibofos_logs
 #from rest.rest_api.rebuildStatus.rebuildStatus import get_rebuilding_status
-from rest.rest_api.perf.system_perf import get_agg_volumes_perf, get_telemetry_properties, set_telemetry_properties
+from rest.rest_api.perf.system_perf import get_agg_volumes_perf, get_telemetry_properties, set_telemetry_properties, get_all_hardware_health
 from flask_socketio import SocketIO, disconnect
 from flask import Flask, abort, request, jsonify, send_from_directory, make_response
 #import rest.rest_api.dagent.bmc as BMC_agent
@@ -74,7 +74,7 @@ from itertools import chain
 eventlet.monkey_patch()
 
 BLOCK_SIZE = 1024 * 1024
-BYTE_FACTOR = 1000
+BYTE_FACTOR = 1024
 
 
 # Connect to MongoDB first. PyMODM supports all URI options supported by
@@ -247,9 +247,6 @@ def start_ibofos(current_user):
     #body_unicode = request.data.decode('utf-8')
     #body = json.loads(body_unicode)
     #script_path = body['path']
-    is_ibofos_running()
-    if(get_ibof_os_status()):
-        return jsonify({"response": "POS is Already Running...", "code": -1})
     res = dagent.start_ibofos()
     res = res.json()
     return jsonify(res)
@@ -302,9 +299,6 @@ def stop_ibofos(current_user):
     :param current_user:
     :return: status
     """
-    is_ibofos_running()
-    if(IBOF_OS_Running.Is_Ibof_Os_Running_Flag == False):
-        return jsonify({"response": "POS has already stopped.", "code": -1})
     res = dagent.stop_ibofos()
     try:
         if res.status_code == 200:
@@ -615,17 +609,6 @@ def get_storage_details(current_user):
     return jsonify(val)
 
 
-@app.route('/api/v1/perf/all', methods=['GET'])
-def get_current_iops():
-    try:
-        received_telemetry = connection_factory.get_telemetery_url()
-        ip = received_telemetry[0]
-        port= received_telemetry[1]
-        res = get_agg_volumes_perf(ip, port)
-        return jsonify(res)
-    except Exception as e:
-        return make_response('Could not get performance metrics'+str(e), 500)
-
 """
 def trigger_email(serverip, serverport, emailid):
     print("Inside Trigger")
@@ -836,6 +819,8 @@ def get_array_info(current_user, array_name):
 def getDevices(current_user):
     devices = list_devices()
     if(not isinstance(devices, dict)):
+        if devices.status_code != 200:
+            return toJson(devices.json())
         devices = devices.json()
     arrays = dagent.list_arrays()
     arrays = arrays.json()
@@ -1446,7 +1431,7 @@ def qos_policies():
 
 
 def validate_email(email):
-    regex = "^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$"
+    regex = "(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*\")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])"
     if(re.search(regex, email)):
         return True
     else:
@@ -1764,7 +1749,9 @@ def saveVolume():
     if (vol_size == 0):
         size = int(max_available_size)
     else:
-        if unit == "GB":
+        if unit == "MB":
+            size = vol_size * BYTE_FACTOR * BYTE_FACTOR
+        elif unit == "GB":
             size = vol_size * BYTE_FACTOR * BYTE_FACTOR * BYTE_FACTOR
         elif unit == 'TB':
             size = vol_size * BYTE_FACTOR * BYTE_FACTOR * BYTE_FACTOR * BYTE_FACTOR
@@ -2117,6 +2104,14 @@ def set_telemetry_config():
     except Exception as e:
         return make_response('Could not configure Telemetry URL'+str(e), 500)
 
+@app.route('/api/v1/configure', methods=['DELETE'])
+def reset_telemetry_config():
+    try:
+        connection_factory.delete_telemetery_url()
+        return reset_telemetry_configuration()
+    except Exception as e:
+        return make_response('Could not reset Telemetry URL'+str(e), 500)
+
 @app.route('/api/v1/checktelemetry', methods=['GET'])
 @token_required
 def check_telemetry(current_user):
@@ -2130,6 +2125,34 @@ def check_telemetry(current_user):
         return res
     except Exception as e:
         return make_response('Prometheus DB is not running'+str(e), 500)
+
+@app.route('/api/v1/perf/all', methods=['GET'])
+def get_current_iops():
+    try:
+        received_telemetry = connection_factory.get_telemetery_url()
+        if received_telemetry is None or len(received_telemetry) == 0:
+            return make_response('Telemetry URL is not configured', 500)
+        ip = received_telemetry[0]
+        port= received_telemetry[1]
+        res = get_agg_volumes_perf(ip, port)
+        return jsonify(res)
+    except Exception as e:
+        return make_response('Could not get performance metrics'+str(e), 500)
+
+@app.route('/api/v1/get_hardware_health', methods=['GET'])
+@token_required
+def get_hardware_health(current_user):
+    try:
+        received_telemetry = connection_factory.get_telemetery_url()
+        if received_telemetry is None or len(received_telemetry) == 0:
+            return make_response('Telemetry URL is not configured', 500)
+        ip = received_telemetry[0]
+        port= received_telemetry[1]
+        res = get_all_hardware_health(ip, port)
+        return jsonify(res)
+    except Exception as e:
+        return make_response('Could not get hardware health metrics'+str(e), 500)
+
 
 '''
 <pre>{&apos;alertName&apos;: &apos;sdfsdf&apos;, &apos;alertType&apos;: &apos;&apos;, &apos;alertCondition&apos;: &apos;Greater Than&apos;, &apos;alertRange&apos;: &apos;7&apos;, &apos;description&apos;: &apos;sdfgsee eee&apos;}
@@ -2623,7 +2646,10 @@ def createMultiVolumeCallback():
     respList = body['MultiVolArray']
     for entry in respList:
         if entry["result"]["status"]["code"] != 0:
-            description += entry["result"]["status"]["description"]
+            if entry["result"]["status"]["description"] == "":
+                description += entry["result"]["status"]["posDescription"]
+            else:
+                description += entry["result"]["status"]["description"]
             if len(description) > 0:
                 description += "\n"
         if "errorInfo" in entry["result"]["status"]:

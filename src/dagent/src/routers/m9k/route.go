@@ -47,11 +47,13 @@ import (
 	"path/filepath"
 	amoduleIBoFOS "pnconnector/src/routers/m9k/api/ibofos"
 	//"pnconnector/src/routers/m9k/model"
+	"dagent/src/routers/m9k/globals"
 	"kouros"
 	pos "kouros/pos"
 	"kouros/setting"
 	"reflect"
 	"strings"
+	"time"
 )
 
 func Route(router *gin.Engine) {
@@ -99,7 +101,13 @@ func Route(router *gin.Engine) {
 			ibofos.CalliBoFOS(ctx, caller.CallStopPoseidonOS, posMngr)
 		})
 		iBoFOSPath.GET("/system", func(ctx *gin.Context) {
-			ibofos.CalliBoFOS(ctx, caller.CallGetSystemInfo, posMngr)
+			globals.Temptime = time.Now().UTC().Unix()
+			if globals.InitialTime+globals.TimeLimit < globals.Temptime {
+				ibofos.CalliBoFOS(ctx, caller.CallGetSystemInfo, posMngr)
+			} else {
+				ctx.AbortWithStatusJSON(http.StatusOK, &globals.InitialRes)
+
+			}
 		})
 		iBoFOSPath.POST("/system/property", func(ctx *gin.Context) {
 			ibofos.CalliBoFOS(ctx, caller.CallSetSystemProperty, posMngr)
@@ -116,7 +124,9 @@ func Route(router *gin.Engine) {
 			ibofos.CalliBoFOS(ctx, caller.CallListDevices, posMngr)
 		})
 		iBoFOSPath.POST("/device", func(ctx *gin.Context) {
-			ibofos.CalliBoFOS(ctx, caller.CallCreateDevice, posMngr)
+			if validateUint32(ctx, "blockSize", 2423) && validateUint32(ctx, "numBlocks", 2424) && validateUint32(ctx, "numa", 2425) {
+				ibofos.CalliBoFOS(ctx, caller.CallCreateDevice, posMngr)
+			}
 
 		})
 		iBoFOSPath.GET("/devices/:deviceName/scan", func(ctx *gin.Context) {
@@ -310,7 +320,7 @@ func Route(router *gin.Engine) {
 	}
 	//QOS
 	iBoFOSPath.POST("/qos", func(ctx *gin.Context) {
-		ibofos_.CalliBoFOS_(ctx, amoduleIBoFOS.QOSCreateVolumePolicies)
+		ibofos_.CalliBoFOSQOS(ctx, amoduleIBoFOS.QOSCreateVolumePolicies)
 	})
 	iBoFOSPath.POST("/qos/reset", func(ctx *gin.Context) {
 		ibofos_.CalliBoFOS_(ctx, amoduleIBoFOS.QOSResetVolumePolicies)
@@ -394,4 +404,28 @@ func validateNumOfDevice(ctx *gin.Context) bool {
 		}
 	}
 	return true
+}
+
+// below validation function is temporary code, will keep this validation on POS side
+func validateUint32(ctx *gin.Context, key string, code int) bool {
+	req := model.Request{}
+	ctx.ShouldBindBodyWith(&req, binding.JSON)
+	reqMap := req.Param.(map[string]interface{})
+	res := model.Response{}
+	_, found := reqMap[key]
+	if !found {
+		res.Result.Status, _ = utils.GetStatusInfo(2426)
+		res.Result.Status.PosDescription = res.Result.Status.Description
+		ctx.AbortWithStatusJSON(http.StatusServiceUnavailable, &res)
+		return false
+	}
+
+	if reflect.TypeOf(reqMap[key]).Kind() == reflect.String || reqMap[key].(float64) < 0 || reqMap[key].(float64) > 4294967295 {
+		res.Result.Status, _ = utils.GetStatusInfo(code)
+		res.Result.Status.PosDescription = res.Result.Status.Description
+		ctx.AbortWithStatusJSON(http.StatusServiceUnavailable, &res)
+		return false
+	}
+	return true
+
 }

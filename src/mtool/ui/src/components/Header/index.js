@@ -55,7 +55,7 @@ import './Header.css';
 import Dropdown from './Dropdown';
 import MobileMenu from './MobileMenu';
 import * as actionTypes from "../../store/actions/actionTypes";
-import MToolTheme from "../../theme";
+import MToolTheme, { customTheme } from "../../theme";
 import * as actionCreators from '../../store/actions/exportActionCreators';
 import ChangePassword from "../ChangePassword";
 import LinearProgressBarComponent from "../IbofOsOperationComponents/LinearProgressBarComponent"
@@ -100,10 +100,10 @@ const styles = theme => ({
     height: 65
   },
   running: {
-    color: 'rgb(61, 249, 50)'
+    color: customTheme.palette.success.light
   },
   notRunning: {
-    color: 'rgb(243, 168, 55)'
+    color: customTheme.palette.warning.light
   },
   infoOutlined: {
     marginLeft: 4,
@@ -474,7 +474,7 @@ class Header extends Component {
                 alt="Poseidon Management Tool"
               />
               <Typography className={classes.version} variant="caption" display="block">
-                v0.16.0
+                v0.16.0-rc4
               </Typography>
             </div>
             <div className={classes.grow} />

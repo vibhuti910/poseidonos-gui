@@ -49,7 +49,7 @@ import { MuiThemeProvider as ThemeProvider, withStyles } from '@material-ui/core
 import Visibility from '@material-ui/icons/Visibility';
 import VisibilityOff from '@material-ui/icons/VisibilityOff';
 import AccountCircle from '@material-ui/icons/AccountCircle';
-import { ArrowForward } from '@material-ui/icons';
+import { ArrowForward, RotateLeft } from '@material-ui/icons';
 import EditIcon from '@material-ui/icons/Edit';
 
 import './Authentication.css';
@@ -173,7 +173,11 @@ const styles = theme => ({
 
   editOutlinedButton: {
     color: "#ccd3db",
-    borderColor: "#ccd3db"
+    borderColor: "#ccd3db",
+    '&:disabled': {
+      color: "#464C55",
+      borderColor: "#464C55",
+    }
   },
 
   poseidonLogo: {
@@ -181,10 +185,6 @@ const styles = theme => ({
     width: 'auto',
     backgroundSize: 'contain',
   },
-
-  colorRed: {
-    color: "red"
-  }
 });
 
 class Authentication extends Component {
@@ -342,7 +342,7 @@ class Authentication extends Component {
                         variant="caption"
                         component="span"
                         data-testid="errorMsgConfigValidation"
-                        className={classes.colorRed}
+                        color="error"
                       >
                         {this.state.validationFailedMessage}
                       </Typography>
@@ -353,7 +353,7 @@ class Authentication extends Component {
                           variant="caption"
                           component="span"
                           data-testid="errorMsgConfig"
-                          className={classes.colorRed}
+                          color="error"
                         >
                           {t('Configuration failed! Telemetry API is not reachable')}
                         </Typography>
@@ -361,7 +361,29 @@ class Authentication extends Component {
                         <span>&nbsp;</span>
                       )}
                   </form>
-                  <Grid container justifyContent="flex-end">
+                  <Grid container justifyContent="space-between">
+                    <Grid item xs={8} container alignItems="flex-end">
+                      <Button
+                        variant="outlined"
+                        className={classes.editOutlinedButton}
+                        data-testid="resetConfig"
+                        onClick={
+                          () => this.props.resetConfig()
+                        }
+                        disabled={!this.props.isConfigured || this.props.isResettingConfig}
+                      >
+                        Reset&nbsp;
+                        <RotateLeft />
+                      </Button>
+                      <Typography
+                        variant="caption"
+                        component="span"
+                        data-testid="resetErrorMsgConfigPopup"
+                        color="error"
+                      >
+                        &nbsp;&nbsp;{this.props.resettingConfigFailed && "Resetting Failed!"}
+                      </Typography>
+                    </Grid>
                     <Button
                       variant="outlined"
                       className={classes.editOutlinedButton}
@@ -462,7 +484,7 @@ class Authentication extends Component {
                         variant="caption"
                         component="span"
                         data-testid="errorMsgLogin"
-                        className={classes.colorRed}
+                        color="error"
                       >
                         {t('Login failed! Invalid id or password')}
                       </Typography>
@@ -516,6 +538,8 @@ const mapStateToProps = state => {
     isConfigured: state.authenticationReducer.isConfigured,
     configurationFailed: state.authenticationReducer.configurationFailed,
     showConfig: state.authenticationReducer.showConfig,
+    isResettingConfig: state.authenticationReducer.isResettingConfig,
+    resettingConfigFailed: state.authenticationReducer.resettingConfigFailed,
     username: state.authenticationReducer.username,
     password: state.authenticationReducer.password,
     loginFailed: state.authenticationReducer.loginFailed,
@@ -528,6 +552,7 @@ const mapDispatchToProps = dispatch => {
     getConfig: () => dispatch({ type: actionTypes.SAGA_CHECK_CONFIGURATION }),
     saveConfig: (data, fn) => dispatch({ type: actionTypes.SAGA_CONFIGURE, payload: data, history: fn }),
     setShowConfig: payload => dispatch(actionCreators.setShowConfig(payload)),
+    resetConfig: () => dispatch({ type: actionTypes.SAGA_RESET_CONFIGURATION }),
     changeCredentials: payload => dispatch(actionCreators.changeCredentials(payload)),
     login: (data, fn) => dispatch({ type: actionTypes.SAGA_LOGIN, payload: data, history: fn }),
   };

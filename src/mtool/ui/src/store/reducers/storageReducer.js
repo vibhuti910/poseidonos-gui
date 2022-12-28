@@ -43,6 +43,8 @@ export const initialState = {
     fetchingVolumes: false,
     volSpace: 0,
     metadisks: [],
+    isDevicesFetching: false,
+    isArrayInfoFetching: false,
     loading: false,
     alertOpen: false,
     alertType: 'alert',
@@ -358,7 +360,8 @@ const storageReducer = (state = initialState, action) => {
                     [action.payload.name]: {
                         ...state.arrayMap[action.payload.name],
                         rebuildProgress: action.payload.rebuildingProgress,
-                        situation: action.payload.situation
+                        situation: action.payload.situation,
+                        uniqueId: action.payload.uniqueId
                     }
                 }
             }
@@ -367,6 +370,16 @@ const storageReducer = (state = initialState, action) => {
             return {
                 ...state,
                 loading: false
+            }
+        case actionTypes.SET_DEVICE_FETCHING:
+            return {
+                ...state,
+                isDevicesFetching: action.payload
+            }
+        case actionTypes.SET_ARRAY_INFO_FETCHING:
+            return {
+                ...state,
+                isArrayInfoFetching: action.payload
             }
         case actionTypes.FETCH_DEVICE_DETAILS: {
             let details = {};

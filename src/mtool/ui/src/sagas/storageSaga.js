@@ -37,6 +37,9 @@ import * as actionCreators from "../store/actions/exportActionCreators";
 import { arrayname } from "../store/reducers/storageReducer";
 import { fetchSubsystems } from "./subsystemSaga";
 
+const MINIOPS = "miniops"
+const MINBW = "minbw"
+
 function* fetchVolumeDetails(action) {
   try {
     const response = yield call([axios, axios.get], action.payload.url, {
@@ -139,6 +142,7 @@ function* fetchArray(action) {
 
 function* fetchArrayInfo(action) {
   try {
+    yield put(actionCreators.setArrayInfoFetching(true));
     const response = yield call(
       [axios, axios.get],
       `/api/v1/array/${action.payload}/info?ts=${Date.now()}`,
@@ -157,7 +161,10 @@ function* fetchArrayInfo(action) {
     }
   } catch (e) {
     // console.log(e);
+  } finally {
+    yield put(actionCreators.setArrayInfoFetching(false));
   }
+    
 }
 
 
@@ -187,13 +194,16 @@ function* fetchDevices(action) {
     devices: [],
     metadevices: [],
   };
+  let fetchDeviceSuccess = false;
   const alertDetails = {
     errorMsg: "Unable to get devices!",
     alertType: "alert",
     alertTitle: "Fetch Devices",
   };
+  const isFetchingFirst = !action || !action.payload || !action.payload.noLoad;
   try {
-    if (!action || !action.payload || !action.payload.noLoad) {
+    yield put(actionCreators.setDeviceFetching(true));
+    if (isFetchingFirst) {
       yield put(actionCreators.startStorageLoader("Fetching Devices"));
     }
     const response = yield call([axios, axios.get], "/api/v1.0/get_devices/", {
@@ -207,6 +217,7 @@ function* fetchDevices(action) {
       response.data.result &&
       response.data.result.status.code !== 0
     ) {
+     if(isFetchingFirst) {
       yield put(
         actionCreators.showStorageAlert({
           alertType: "alert",
@@ -218,9 +229,12 @@ function* fetchDevices(action) {
             }`,
         })
       );
+     }
     } else if (result && typeof result !== "string" && result.return !== -1) {
+      fetchDeviceSuccess = true;
       yield put(actionCreators.fetchDevices(result));
     } else {
+     if(isFetchingFirst) {
       yield put(actionCreators.showStorageAlert({
         ...alertDetails,
         errorCode: `Description: ${response.data && response.data.result && response.data.result.status
@@ -228,17 +242,22 @@ function* fetchDevices(action) {
           : "Agent Communication Error"
           }`
       }));
+     }
       yield put(actionCreators.fetchDevices(defaultResponse));
     }
   } catch (error) {
-
+    if(isFetchingFirst) {
     yield put(actionCreators.showStorageAlert({
       ...alertDetails,
       errorCode: `Agent Communication Error - ${error.message}`
     }));
+    }
     yield put(actionCreators.fetchDevices(defaultResponse));
   } finally {
-    if (!action || !action.payload || !action.payload.noLoad) {
+    yield put(actionCreators.setDeviceFetching(false));
+    if (!fetchDeviceSuccess) {
+      yield put(actionCreators.stopStorageLoader());
+    } else if (!action || !action.payload || !action.payload.noLoad) {
       yield put(actionCreators.stopStorageLoader());
       yield fetchArray();
     } else {
@@ -269,6 +288,7 @@ function* createVolume(action) {
         },
       }
     );
+    
     /* istanbul ignore else */
     if (action.payload.count > 1) {
       if (response.status === 200) {
@@ -307,15 +327,13 @@ function* createVolume(action) {
     // for single volume creation
     else if (response.status === 200) {
       if (
-        response.data.result &&
-        response.data.result.status &&
-        (response.data.result.status.code === 2000 ||
-          response.data.result.status.code === 0)
+        response.data.result?.status?.code === 2000
+        || response.data.result?.status?.code === 0
       ) {
         const { errorInfo } = response.data.result.status;
         let isError = false;
         let errorCodeDescription = '';
-        if (errorInfo && errorInfo.errorResponses.length > 0) {
+        if (errorInfo?.errorResponses.length > 0) {
           errorInfo.errorResponses.map(err => {
             errorCodeDescription += `${err.description}\n\n`;
             if (err.code !== 0)
@@ -344,17 +362,25 @@ function* createVolume(action) {
         }
         yield put(actionCreators.toggleAdvanceCreateVolumePopup(false));
         yield put(actionCreators.resetInputs());
+      } else if (response.data.result?.status?.code === 9011) {
+        yield put(
+          actionCreators.showStorageAlert({
+            alertType: "partialError",
+            alertTitle: "Create Volume",
+            errorMsg: "Volume is created with below warnings",
+            errorCode: `${response.data.result?.status?.posDescription}`,
+          })
+        );
+        yield put(actionCreators.toggleAdvanceCreateVolumePopup(false));
+        yield put(actionCreators.resetInputs());
       } else {
         yield put(
           actionCreators.showStorageAlert({
             alertType: "alert",
             alertTitle: "Create Volume",
             errorMsg: "Error while creating Volume",
-            errorCode: `${response.data.result && response.data.result.status
-              ? `${response.data.result.status.description}
-			    ${response.data.result.status.solution}`
-              : ""
-              }`,
+            errorCode: `${response.data.result?.status?.description}
+                      ${response.data.result?.status?.solution}`,
           })
         );
       }
@@ -608,7 +634,7 @@ function* updateVolume(action) {
       volumes: [{ "volumeName": action.payload.name }],
       array: arrayName,
     };
-    if (action.payload.minbw !== action.payload.oldMinbw) {
+    if (action.payload.minType === MINBW && action.payload.minbw !== action.payload.oldMinbw) {
       data = {
         maxiops: action.payload.maxiops,
         minbw: action.payload.minbw,
@@ -617,7 +643,7 @@ function* updateVolume(action) {
         array: arrayName,
       }
     }
-    else if (action.payload.miniops !== action.payload.oldMiniops) {
+    else if (action.payload.minType === MINIOPS && action.payload.miniops !== action.payload.oldMiniops) {
       data = {
         miniops: action.payload.miniops,
         maxiops: action.payload.maxiops,
@@ -747,7 +773,7 @@ function* resetAndUpdateVolume(action) {
 
   const isGreaterThanEqualTo = (param) => {
     if (typeof (param) === 'number') return false;
-    const max = "18446744073709551";
+    const max = "18446744073709552";
     if (param.length < max.length) return false;
     if (param.length > max.length) return true;
 
@@ -766,7 +792,7 @@ function* resetAndUpdateVolume(action) {
     yield put(actionCreators.showStorageAlert({
       alertType: "alert",
       alertTitle: "Reset Volume",
-      errorMsg: "Max IOPS should be in the range 10 ~ 18446744073709550. Please input 0, for no limit for qos or Maximum",
+      errorMsg: "Max IOPS should be in the range 10 ~ 18446744073709551. Please input 0, for no limit for qos or Maximum",
     }))
     return;
   }

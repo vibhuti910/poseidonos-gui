@@ -114,12 +114,19 @@ func RuniBoFOS(xrId string, param interface{}, posMngr pos.POSManager) (model.Re
 		Command: "RUNIBOFOS",
 		Rid:     xrId,
 	}
+	_, err1 := posMngr.GetSystemInfo()
+	if err1 == nil {
+		log.Errorf(commandFailureMsg, GetFuncName(1), err1)
+		errResponse := model.Response{}
+		errResponse.Result.Status, _ = utils.GetStatusInfo(11022)
+		return iBoFRequest, errResponse, nil
+	}
 
 	iBoFRequest.Param = param
 	res := model.Response{}
 	_, pathErr := os.Stat("/usr/local/bin/poseidonos")
 	if os.IsNotExist(pathErr) {
-		res.Result.Status.Code = 11001
+		res.Result.Status, _ = utils.GetStatusInfo(11001)
 		return iBoFRequest, res, pathErr
 	}
 	path, _ := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -173,21 +180,17 @@ func CallStopPoseidonOS(xrId string, param interface{}, posMngr pos.POSManager) 
 }
 
 func CallGetSystemInfo(xrId string, param interface{}, posMngr pos.POSManager) (model.Response, error) {
-	temptime := time.Now().UTC().Unix()
-	if globals.InitialTime+globals.TimeLimit < temptime {
-		result, err1 := posMngr.GetSystemInfo()
-		if err1 != nil {
-			log.Errorf(commandFailureMsg, GetFuncName(1), err1)
-			return model.Response{}, ErrConn
-		}
-		resByte, err2 := protojson.Marshal(result)
-		globals.InitialTime = temptime
-		resp, err := HandleResponse(resByte, err2)
-		globals.InitialRes = resp
-		globals.InitialErr = err
-		return resp, err
-	} else {
-		return globals.InitialRes, globals.InitialErr
-
+	result, err1 := posMngr.GetSystemInfo()
+	if err1 != nil {
+		log.Errorf(commandFailureMsg, GetFuncName(1), err1)
+		errResponse := model.Response{}
+		errResponse.Result.Status.Code = 11021
+		return errResponse, ErrConn
 	}
+	resByte, err2 := protojson.Marshal(result)
+	globals.InitialTime = globals.Temptime
+	resp, err := HandleResponse(resByte, err2)
+	globals.InitialRes = resp
+	globals.InitialErr = err
+	return resp, err
 }

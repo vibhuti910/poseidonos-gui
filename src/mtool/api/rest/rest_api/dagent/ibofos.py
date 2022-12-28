@@ -50,9 +50,9 @@ BASE_PATH = 'api/ibofos'
 BASIC_AUTH_TOKEN = 'Basic YWRtaW46YWRtaW4='
 VERSION = 'v1'
 
-connect_timeout = 60
-read_timeout = 60
-
+connect_timeout = 30
+read_timeout = 2400
+system_info_connect_timeout = 10
 
 def get_headers(
         auth=BASIC_AUTH_TOKEN,
@@ -93,7 +93,7 @@ def send_command_to_dagent(req_type, url, headers, timeout=None, data=None):
                 return response
             if response.status_code == 202 or response.status_code == 503:
                 retry_count = 5
-            if(retry_count >= 5):
+            if(retry_count >= 1): # Removing retry logic as D-Agent has locks implemented
                 return response
             time.sleep(1)
     except BaseException:
@@ -104,20 +104,10 @@ def get_system_state(auth=BASIC_AUTH_TOKEN):
     logger = logging.getLogger(__name__)
     logger.info('%s', 'Get system state...')
     try:
-        response = send_command_to_dagent("GET",
-                                          url=DAGENT_URL + '/' + BASE_PATH + '/' + VERSION + '/' + 'system',
-                                          headers={"X-Request-Id": str(uuid.uuid4()),
-                                                   "Accept": "application/json",
-                                                   "Authorization": auth,
-                                                   "ts": str(int(time.time()))},
-                                          timeout=(connect_timeout,
-                                                   read_timeout))
-        #print("response:",response.status_code, response.json())
-        # if "error" in response.json():
-        #    logger.error('%s %s', 'ERROR', response)
-        #    return {"result": response["error"], "return": -1}
-        # else:
-        #    logger.info('%s %s', 'INFO sysstate', json.dumps(response))
+        url = DAGENT_URL + '/' + BASE_PATH + '/' + VERSION + '/' + 'system'
+        headers={"X-Request-Id": str(uuid.uuid4()), "Accept": "application/json", "Authorization": auth, "ts": str(int(time.time()))}
+        timeout = (system_info_connect_timeout,read_timeout)
+        response = requests.get(url=url, headers=headers, timeout=timeout)
         return response
     except Exception as err:
         print(f'Other error occurred in get_system_state : {err}', err)
@@ -155,9 +145,7 @@ def start_ibofos(auth=BASIC_AUTH_TOKEN):
             "POST",
             url=DAGENT_URL + '/' + BASE_PATH + '/' + VERSION + '/' + 'system',
             headers=req_headers,
-            timeout=(
-                connect_timeout,
-                read_timeout))
+            timeout=(300,300))
         # print("---------------RESPONSE---------------")
         #print(response.status_code, response.json())
         # array_exists(array_names[0])
@@ -252,7 +240,7 @@ def scan_devices(auth=BASIC_AUTH_TOKEN):
         # print("---------------RESPONSE---------------",response.json())
         return response
     except Exception as err:
-        print(f'Other error occurred: {err}')
+        print(f'Other error occurred: {err}',err)
     return make_failure_response(
         'Could not get ibofos to scan devices...', 500)
 
@@ -273,7 +261,7 @@ def get_devices(auth=BASIC_AUTH_TOKEN):
         #print(response.status_code, response.json())
         return response
     except Exception as err:
-        print(f'Other error occurred: {err}')
+        print(f'Other error occurred: {err}',err)
     return make_failure_response(
         'Could not get ibofos to scan devices...', 500)
 
@@ -682,7 +670,7 @@ def create_array(
         #print(response.status_code, response.json())
         return response
     except Exception as err:
-        print(f'Other error occurred: {err}')
+        print(f'Other error occurred: {err}',err)
     return make_failure_response(
         'Could not get ibofos to create array...', 500)
 
@@ -709,7 +697,7 @@ def rebuild_array(arrayname, auth=BASIC_AUTH_TOKEN):
             data=None)
         return response
     except Exception as err:
-        print(f'Other error occurred: {err}')
+        print(f'Other error occurred: {err}',err)
     return make_failure_response(
         'Could not get ibofos to rebuild array...', 500)
 
@@ -719,7 +707,7 @@ def mount_array(arrayname, write_through=False, auth=BASIC_AUTH_TOKEN):
     request_body = {
         "param": {
             "array": arrayname,
-            "enable_write_through": write_through
+            "enableWriteThrough": write_through
         }
     }
     request_body = json.dumps(request_body)
@@ -744,7 +732,7 @@ def mount_array(arrayname, write_through=False, auth=BASIC_AUTH_TOKEN):
         #print(response.status_code , response.json())
         return response
     except Exception as err:
-        print(f'Other error occurred: {err}')
+        print(f'Other error occurred: {err}',err)
     return make_failure_response(
         'Could not mount array.', 500)
 
@@ -778,7 +766,7 @@ def unmount_array(arrayname, auth=BASIC_AUTH_TOKEN):
         #print(response.status_code, response.json())
         return response
     except Exception as err:
-        print(f'Other error occurred: {err}')
+        print(f'Other error occurred: {err}',err)
     return make_failure_response(
         'Could not unmount array', 500)
 

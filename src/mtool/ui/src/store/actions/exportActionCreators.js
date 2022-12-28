@@ -45,6 +45,7 @@ export {
     fetchVolumes, 
     fetchAlerts,
     fetchPerformance,
+    fetchHardwareHealth,
     fetchStorage,
     fetchIpAndMac,
 } from "./dashboardActions";
@@ -92,7 +93,9 @@ export {
     addVolumeDetails,
     clearVolumes,
     startFetchingVolumes,
-    stopFetchingVolumes
+    stopFetchingVolumes,
+    setDeviceFetching,
+    setArrayInfoFetching
 } from "./storageActions";
 
 export {
@@ -125,6 +128,8 @@ export {
 } from "./performanceActions";
 
 export {
+    setIsResettingConfig,
+    setIsResetConfigFailed,
     setIsSavingConfig,
     setShowConfig,
     setIsConfigured,

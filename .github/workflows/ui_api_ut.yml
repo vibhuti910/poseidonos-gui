@@ -4,12 +4,12 @@ name: POS GUI Unit Tests
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [ main, 'release/**' ]
 
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     defaults:
        run:
          working-directory: ${{github.workspace}}
