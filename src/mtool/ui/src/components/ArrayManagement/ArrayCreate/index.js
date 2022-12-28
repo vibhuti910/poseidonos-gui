@@ -415,6 +415,7 @@ class ArrayCreate extends Component {
       metaDisk: this.state.metaDisk,
       writeThroughModeEnabled: this.state.writeThroughMode
     });
+    
   }
 
   toggleRowSelect(position, disk) {

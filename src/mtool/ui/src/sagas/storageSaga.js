@@ -942,10 +942,10 @@ function* deletePreset(action){
   try{
     // const presetName = yield select(preset)
     const presetName = action.payload
-    console.log(presetName['presetDelete'])
+    console.log(presetName.presetDelete)
     const response = yield call(
       [axios, axios.post],
-      `/api/v1.0/delete_preset/${presetName['presetDelete']}`,
+      `/api/v1.0/delete_preset/${presetName.presetDelete}`,
       action.payload,
       {
         headers: {
@@ -1112,12 +1112,43 @@ function* createArray(action) {
     yield put(actionCreators.stopStorageLoader());
   }
 }
+
+function* getPresetData(){
+  try{
+    console.log("Before getting preset Data")
+    const response = yield call(
+      [axios, axios.get],
+      "/api/v1/get_preset_data/",
+      {
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "x-access-token": localStorage.getItem("token"),
+        },
+      }
+    );
+    console.log("Before getting preset Data")
+    if (response.status === 200 && response.data)
+    {
+      console.log("Before getting preset Data")
+      yield put(
+        actionCreators.fetchPresetDetails(response.data)
+      );
+    }
+    console.log("Before getting preset Data")
+  }catch(error){
+    console.log(error);
+  }finally{
+    console.log("Finally");
+  }
+}
+
 function* savePreset(action){
   try{
     console.log("In this section of the code ###########################################")
     console.log(action)
     console.log(action.payload)
-    const specialChars = `\`!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`;
+    const specialChars = `\`!@#$%^&*()_+-=[]{};':"\\|,.<>/?~`;
     if( action.payload.presetName === '' ){
       yield put(
         actionCreators.showStorageAlert({
@@ -1138,8 +1169,8 @@ function* savePreset(action){
         })
       );
     }
-    else if(specialChars.split('').some( specialChars => {
-      if(action.payload.presetName.includes(specialChars)){
+    else if(specialChars.split('').some( chars => {
+      if(action.payload.presetName.includes(chars)){
         return true;
       }
       return false;
@@ -1172,12 +1203,12 @@ function* savePreset(action){
     );
     console.log("After getting response")
     console.log(response);
-    if( response.status == 200){
+    if( response.status === 200){
       console.log("No hereeeeeeeeeeeee", response)
         action.payload.setState({confirmOpen: false});
         yield getPresetData();
     }
-    else if (response.status == 399){
+    else if (response.status === 399){
       yield put(
         actionCreators.showStorageAlert({
           alertType: "alert",
@@ -1201,36 +1232,6 @@ function* savePreset(action){
   } finally {
     yield put(actionCreators.stopStorageLoader());
     }
-}
-
-function* getPresetData(action){
-  try{
-    console.log("Before getting preset Data")
-    const response = yield call(
-      [axios, axios.get],
-      "/api/v1/get_preset_data/",
-      {
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-          "x-access-token": localStorage.getItem("token"),
-        },
-      }
-    );
-    console.log("Before getting preset Data")
-    if (response.status === 200 && response.data)
-    {
-      console.log("Before getting preset Data")
-      yield put(
-        actionCreators.fetchPresetDetails(response.data)
-      );
-    }
-    console.log("Before getting preset Data")
-  }catch(error){
-    console.log(error);
-  }finally{
-    console.log("Finally");
-  }
 }
 
 function* autoCreateArray(action) {

@@ -57,7 +57,7 @@ import Legend from "../../components/Legend";
 import * as actionTypes from "../../store/actions/actionTypes";
 import formatBytes from "../../utils/format-bytes";
 import getSubsystemForArray from "../../utils/subsystem";
-
+import Preset from "../../components/Presets"
 const styles = (theme) => ({
   dashboardContainer: {
     display: "flex",
@@ -185,7 +185,15 @@ class Volume extends Component {
           "x-access-token": localStorage.getItem("token"),
         },
       }),
-      mountSubsystem: ""
+      mountSubsystem: "",
+      confirmOpen:false,
+      confirmPreset:true,
+      presetName: "",
+      selectedBufferPreset: "",
+      arrayNamePreset: "",
+      raidPreset:"",
+      storageDisksPreset:"",
+      spareDisksPreset:""
     };
     this.deleteVolumes = this.deleteVolumes.bind(this);
     this.fetchVolumes = this.fetchVolumes.bind(this);
@@ -207,21 +215,102 @@ class Volume extends Component {
     this.openRebuildPopover = this.openRebuildPopover.bind(this);
     this.closeRebuildPopover = this.closeRebuildPopover.bind(this);
     this.rebuildArray = this.rebuildArray.bind(this);
+    this.savePreset = this.savePreset.bind(this);
+    this.getPresetData = this.getPresetData.bind(this);
+    this.closePopup = this.closePopup.bind(this);
+    this.deletePreset = this.deletePreset.bind(this);
+    this.setPresetName = this.setPresetName.bind(this);
+    this.setBufferPreset = this.setBufferPreset.bind(this);
+    this.createArrayFromPreset = this.createArrayFromPreset.bind(this);
+    this.setArrayNamePreset = this.setArrayNamePreset.bind(this);
+    this.getRaidType = this.getRaidType.bind(this);
+    this.setRowData = this.setRowData.bind(this);
+    this.getFreeDisks = this.getFreeDisks.bind(this);
     const urlParams = new URLSearchParams(window.location.search);
     const array = urlParams.get("array");
     if (array) {
       this.props.Set_Array(array)
     }
   }
+  
+
+  setBufferPreset(value){
+    this.setState({
+      selectedBufferPreset:value
+    });
+  }
+
+  setArrayNamePreset(value){
+    this.setState({
+      arrayNamePreset:value
+    });
+  }
+  setRowData(row){
+    this.setState({
+      raidPreset: row.faulttolerancelevel,
+      storageDisksPreset: row.storagedisks,
+      spareDisksPreset: row.sparedisks
+    });
+  }
+
+  getRaidType(raids,value){
+    if (raids) {
+      const raid = raids.find(r => r.value === value);
+      return raid || {};
+    }
+    return {}
+  }
+
+  getFreeDisks(disks){
+    const freeDisks = disks && disks.filter ?
+    disks.filter(disk => disk.isAvailable) : [];
+    return freeDisks.length;
+  }
+
+  savePreset(preset){
+    let faultToleranceLevel = this.props.arrayMap[this.props.selectedArray].RAIDLevel
+    let storageDisks = this.props.arrayMap[this.props.selectedArray].storagedisks.length
+    let sparedDisks = this.props.arrayMap[this.props.selectedArray].sparedisks.length
+    console.log("selected arraayyyyyyyyyyyyyyyyyyyyyy")
+    let writeBufferPath = this.props.arrayMap[this.props.selectedArray].metadiskpath[0].deviceName
+    console.log(writeBufferPath)
+    let presetName = this.state.presetName
+    this.props.Save_Preset({
+      faultToleranceLevel,
+      storageDisks,
+      sparedDisks,
+      presetName,
+      writeBufferPath,
+      setState: this.setState.bind(this)
+    });
+  }
+  deletePreset(preset){
+    this.props.Delete_Preset({ presetDelete : preset.presetname });
+  }
+
+  getPresetData(){
+    this.props.Get_Preset_Data();
+  }
+
+  setPresetName(value){
+    this.setState({
+      presetName:value
+    });
+  }
 
   componentDidMount() {
+    this.props.Get_Preset_Data();
     this.props.Get_Config();
     this.fetchDevices();
     this.fetchStorageInfo();
     this.fetchMaxVolumeCount();
     this.props.Get_Subsystems();
   }
-
+  closePopup() {
+    this.setState({
+      confirmOpen: false
+    });
+  }
   componentDidUpdate() {
     if (window.location.href.indexOf('manage') > 0
       && window.location.href.indexOf(`array=${this.props.selectedArray}`) < 0) {
@@ -297,7 +386,25 @@ class Volume extends Component {
   }
 
   createArray(array) {
+    console.log("Array confirgurations", array)
     this.props.Create_Array(array);
+  }
+
+  createArrayFromPreset(){
+    console.log("create array from row is calledddddd")
+    const raidType = this.getRaidType(this.props.config.raidTypes, this.state.raidPreset);
+    this.props.Auto_Create_Array({
+        array: {
+        metaDisk: this.state.selectedBufferPreset, 
+        arrayName: this.state.arrayNamePreset,
+        raidtype: this.state.raidPreset,
+        storageDisks: Number(this.state.storageDisksPreset),
+        spareDisks: Number(this.state.spareDisksPreset),
+        writeThroughMode: false,
+      },
+      freeDisks: this.getFreeDisks(this.props.ssds),
+      selectedRaid: raidType
+    });
   }
 
   closeMountPopup() {
@@ -382,6 +489,15 @@ class Volume extends Component {
   }
 
   render() {
+    
+    console.log("State Updated from UI",
+    this.state.selectedBufferPreset, 
+    this.state.arrayNamePreset,
+    this.state.raidPreset,
+    this.state.storageDisksPreset,
+    this.state.spareDisksPreset)
+
+
     let totalVolSize = 0;
     for (let i = 0; i < this.props.volumes.length; i += 1) {
       totalVolSize += this.props.volumes[i].size;
@@ -415,8 +531,10 @@ class Volume extends Component {
     };
     const openPopover = this.state.rebuildPopoverElement;
     const { classes } = this.props;
+    
 
     return (
+
       <ThemeProvider theme={MToolTheme}>
         <Box display="flex">
           <Header toggleDrawer={this.handleDrawerToggle} />
@@ -485,6 +603,16 @@ class Volume extends Component {
                         autoCreateArray={this.props.Auto_Create_Array}
                         config={this.props.config}
                       />
+                      <Preset
+                      presets = {this.props.presetInformation}
+                      deletePreset = {this.deletePreset}
+                      setBufferPreset = {this.setBufferPreset}
+                      createArrayFromPreset = {this.createArrayFromPreset}
+                      metadisks={this.props.metadisks}
+                      setArrayNamePreset = {this.setArrayNamePreset}
+                      setRowData = {this.setRowData}
+                      />
+
                       {(this.props.posMountStatus === "EXIST_NORMAL") ? (
                         <Typography style={{ color: "#b11b1b" }} variant="h5" align="center">Poseidon OS is not Mounted !!!</Typography>
                       ) : null}
@@ -571,10 +699,11 @@ class Volume extends Component {
                                       </Grid>
                                     </Typography>
                                   </Grid>
-                                  {this.props.arrayMap[this.props.selectedArray].rebuildProgress ? (
+                                  {this.props.arrayMap[this.props.selectedArray].rebuildProgress &&
+					  this.props.arrayMap[this.props.selectedArray].situation === "REBUILDING" ? (
                                     <Popover
                                       id="rebuild-popover"
-                                      open={openPopover}
+                                      open={this.state.rebuildPopoverElement}
                                       anchorOrigin={{
                                         vertical: "bottom",
                                         horizontal: "left"
@@ -736,13 +865,33 @@ class Volume extends Component {
                 </Route>
               </Switch>
               <AlertDialog
+              type="preset"
+              title="Save Preset"
+              description="Enter the name"
+              preset={this.state.confirmPreset}
+              setpresetname = {(v) => this.setPresetName(v)}
+              open={this.state.confirmOpen}
+              onConfirm={(v) => {
+                // this.setState({
+                //   confirmOpen: false
+                // });
+                this.savePreset({...v, setState: this.setState});
+              }}
+              handleClose={this.closePopup}
+            />
+              <AlertDialog
                 title={this.props.alertTitle}
                 description={this.props.errorMsg}
                 open={this.props.alertOpen}
                 type={this.props.alertType}
                 link={this.props.alertLink}
                 linkText={this.props.alertLinkText}
-                onConfirm={this.alertConfirm}
+                onConfirm={() => {
+                  this.setState({
+                    confirmOpen: true
+                  })
+                  this.props.Close_Alert();
+                }}
                 handleClose={this.alertConfirm}
                 errCode={this.props.errorCode}
               />
@@ -773,6 +922,7 @@ const mapStateToProps = (state) => {
     ssds: state.storageReducer.ssds,
     metadisks: state.storageReducer.metadisks,
     volumes: state.storageReducer.volumes,
+    presetInformation: state.storageReducer.presets,
     fetchingVolumes: state.storageReducer.fetchingVolumes,
     arrays: state.storageReducer.arrays,
     arrayMap: state.storageReducer.arrayMap,
@@ -817,6 +967,12 @@ const mapDispatchToProps = (dispatch) => {
     Close_Alert: () => dispatch({ type: actionTypes.STORAGE_CLOSE_ALERT }),
     Create_Array: (payload) =>
       dispatch({ type: actionTypes.SAGA_CREATE_ARRAY, payload }),
+    Save_Preset: (payload) =>
+      dispatch({ type: actionTypes.SAGA_SAVE_PRESET, payload }),
+    Get_Preset_Data: (payload) =>
+      dispatch({ type: actionTypes.SAGA_GET_PRESET_DATA, payload }),
+    Delete_Preset: (payload) =>
+      dispatch({ type: actionTypes.SAGA_DELETE_PRESET, payload}),
     Get_Disk_Details: (payload) =>
       dispatch({ type: actionTypes.SAGA_FETCH_DEVICE_DETAILS, payload }),
     Edit_Volume: (payload) =>

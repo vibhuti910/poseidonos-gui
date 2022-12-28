@@ -140,6 +140,14 @@ export const fetchDeviceDetails = (payload) => {
     }
 }
 
+export const fetchPresetDetails = (payload) =>{
+    return{
+        type:actionTypes.GET_PRESET_DATA,
+        payload
+    }
+
+}
+
 export const fetchArrayDetails = (payload) => {
     return {
         type: actionTypes.GET_ARRAY_INFO,

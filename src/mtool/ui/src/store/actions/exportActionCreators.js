@@ -77,6 +77,7 @@ export {
 export {
     fetchDevices,
     fetchDeviceDetails,
+    fetchPresetDetails,
     fetchArray,
     fetchArrayDetails,
     fetchConfig,

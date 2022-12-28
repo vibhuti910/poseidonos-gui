@@ -1197,6 +1197,41 @@ def create_arrays(current_user):
         print("Exception in creating array: " + e)
         return abort(404)
 
+@app.route('/api/v1.0/save_preset/', methods=['POST'])
+@token_required
+def save_preset(current_user):
+    print("Saving preset")
+    body_unicode = request.data.decode('utf-8')
+    body = json.loads(body_unicode)
+    presetname = body['presetName']
+    faulttolerancelevel = body['faultToleranceLevel']
+    storagedisks = body['storageDisks']
+    sparedisks = body['sparedDisks']
+    writebufferpath = body['writeBufferPath']
+    try:
+        result = connection_factory.insert_preset_data(presetname, faulttolerancelevel, storagedisks, sparedisks, writebufferpath)
+        if(result == False):
+            print("In this section of the code")
+            return make_response("Duplicate name",399)
+        else:
+            return jsonify({"message": "Preset Inserted"})
+    except Exception as e:
+        print(e)
+        return abort(404)
+
+@app.route('/api/v1/get_preset_data/', methods=['GET'])
+@token_required
+def get_preset_data(current_user):
+    try:
+        result = connection_factory.get_preset_data()
+        print(result)
+        if(result == False):
+            return toJson([])
+        else:
+            return toJson(result)
+    except Exception as e:
+        print("Exception side")
+        return abort(404)
 
 @app.route('/api/v1/get_array_config/', methods=['GET'])
 @token_required
@@ -1292,7 +1327,7 @@ def get_arrays(current_user):
                 a_info['totalsize'] = int(res["result"]["data"]["capacity"])
                 if "used" in res["result"]["data"]:
                     a_info['usedspace'] = int(res["result"]["data"]["used"])
-                a_info['volumecount'] = len(vol_list)
+                # a_info['volumecount'] = len(vol_list)
                 a_info["arrayname"] = res["result"]["data"]["name"]
                 a_info["status"] = array["status"]
                 a_info["situation"] = res["result"]["data"]["situation"]
@@ -1906,6 +1941,20 @@ def unmountPOS(current_user):
         print("In exception unmountPOS(): ", e)
         return make_response('Could not unmount POS', 500)
 
+@app.route('/api/v1.0/delete_preset/<name>', methods=['POST'])
+def deletePreset(name):
+    body_unicode = request.data.decode('utf-8')
+    body = json.loads(body_unicode)
+    print("This preset Need to be deleted", body['presetDelete'])
+    result = toJson(body)
+    try:
+        result = connection_factory.delete_preset_data(body['presetDelete'])
+        if result == False:
+            print("Getting error here")
+            return toJson([])
+        return toJson(result)
+    except Exception as e:
+        return abort(404)
 
 @app.route('/api/v1.0/delete_volumes/<name>', methods=['POST'])
 def deleteVolumes(name):

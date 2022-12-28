@@ -68,7 +68,10 @@ SMTP_TABLE = "smtpdetails"
 IBOFOS_TIMESTAMP_TABLE = "iBOFOS_Timestamp"
 USER_ALERTS_TABLE = "user_alerts"
 MONGODB_DB_NAME = "ibof"
+USER_PRESET_TABLE ="preset_table"
 MONGODB_URL = "mongodb://localhost:27017/"
+
+
 USER_TABLE_COLUMNS = (
     "_id",
     "password",
@@ -104,6 +107,14 @@ USER_ALERTS_TABLE_COLUMNS = (
     "alertRange",
     "active")
 
+PRESET_TABLE_COLUMNS = (
+    "presetname",
+    "faulttolerancelevel",
+    "storagedisks",
+    "sparedisks",
+    "writebufferpath"
+)
+
 TELEMETRY_TABLE_QUERY = "CREATE TABLE IF NOT EXISTS " + TELEMETRY_TABLE + " (ip text,port text);"
 
 USER_TABLE_QUERY = "CREATE TABLE IF NOT EXISTS " + USER_TABLE + " (" + USER_TABLE_COLUMNS[0] + " text," + USER_TABLE_COLUMNS[1] + " text," + USER_TABLE_COLUMNS[2] + " text," + USER_TABLE_COLUMNS[3] + \
@@ -119,6 +130,8 @@ COUNTERS_TABLE_QUERY = "CREATE TABLE IF NOT EXISTS " + \
     COUNTERS_TABLE + " (_id text,counter integer);"
 TIMESTAMP_TABLE_QUERY = "CREATE TABLE IF NOT EXISTS " + \
     IBOFOS_TIMESTAMP_TABLE + " (_id text,lastRunningTime text);"
+USER_PRESET_QUERY = "CREATE TABLE IF NOT EXISTS " + \
+    USER_PRESET_TABLE + " (presetname,faulttolerancelevel,storagedisks,sparedisks,writebufferpath);"
 
 TELEMETRY_QUERY = "SELECT * FROM " + TELEMETRY_TABLE
 INSERT_TELEMETRY_QUERY = "INSERT INTO " + TELEMETRY_TABLE + " (ip,port) VALUES(?,?)"
@@ -136,6 +149,12 @@ UPDATE_TIME_QUERY = "UPDATE " + IBOFOS_TIMESTAMP_TABLE + \
 SELECT_SMTP_QUERY = "SELECT _id FROM " + SMTP_TABLE + " WHERE lower(_id)=?"
 INSERT_SMTP_IP_QUERY = "INSERT INTO " + SMTP_TABLE + \
     " (_id,serverip,serverport) VALUES(?,?,?)"
+PRESET_QUERY = "SELECT * FROM " + USER_PRESET_TABLE
+DUPLICATE_PRESET_QUERY = "SELECT * FROM " + USER_PRESET_TABLE + " WHERE presetname = ?"
+INSERT_USER_PRESET_TABLE_QUERY = "INSERT INTO " + USER_PRESET_TABLE + \
+    " (presetname,faulttolerancelevel,storagedisks,sparedisks,writebufferpath) VALUES(?,?,?,?,?)"
+UPDATE_USER_PRESET_TABLE_QUERY = "UPDATE " + USER_PRESET_TABLE + \
+    " SET presetname = ?, faulttolerancelevel = ?, storagedisks = ?, sparedisks = ?, writebufferpath = ?"
 UPDATE_SMTP_QUERY = "UPDATE " + SMTP_TABLE + \
     " SET _id = ?, serverip = ?, serverport = ? where lower(_id) = ?"
 EMAILLIST_QUERY = "SELECT * FROM " + EMAILLIST_TABLE
@@ -155,6 +174,7 @@ IBOFOS_TIME_INTERVAL_QUERY = "SELECT ibofostimeinterval FROM " + \
 SET_IBOFOS_TIME_INTERVAL_QUERY = "UPDATE " + USER_TABLE + \
     " SET ibofostimeinterval = ? where lower(_id) = ?"
 DELETE_USER_QUERY = "DELETE FROM " + USER_TABLE + " WHERE lower(_id)=?"
+DELETE_PRESET_QUERY = "DELETE FROM " + USER_PRESET_TABLE  + " WHERE presetname=?"
 USERS_QUERY = "SELECT * FROM " + USER_TABLE
 CHECK_USER_QUERY = "SELECT _id FROM " + USER_TABLE + " WHERE lower(_id) = ?"
 CHECK_EMAIL_QUERY = "SELECT _id FROM " + USER_TABLE + " WHERE lower(email) = ?"
@@ -210,6 +230,7 @@ class SQLiteConnection:
         cur.execute(TIMESTAMP_TABLE_QUERY)
         cur.execute(USER_ALERTS_TABLE_QUERY)
         cur.execute(SMTP_TABLE_QUERY)
+        cur.execute(USER_PRESET_QUERY)
         cur = DB_CONNECTION.cursor()
         is_user_table_exist = None
         try:
@@ -234,8 +255,37 @@ class SQLiteConnection:
         if rows is None or len(rows) == 0:
             cur.execute(INSERT_TELEMETRY_QUERY, (ip, port))
         else:
-            cur.execute(UPDATE_TELEMETRY_QUERY, (ip, port))
+            cur.execute(UPDATE_USER_PRESET_TABLE_QUERY, (ip, port))
         DB_CONNECTION.commit()
+    
+    def insert_preset_data(self, presetname, faulttolerancelevel, storagedisks, sparedisks, writebufferpath):
+        cur = DB_CONNECTION.cursor()
+        cur.execute(DUPLICATE_PRESET_QUERY, (presetname,))
+        rows = cur.fetchall()
+        if rows is None or len(rows) != 0:
+            return False
+        cur.execute(INSERT_USER_PRESET_TABLE_QUERY, (presetname, faulttolerancelevel, storagedisks, sparedisks,writebufferpath, ))
+        DB_CONNECTION.commit()
+    
+    def get_preset_data(self):
+        cur = DB_CONNECTION.cursor()
+        cur.execute(PRESET_QUERY)
+        rows = cur.fetchall()
+        if rows is None or len(rows) == 0:
+            return False
+        else:
+            return self.tupple_to_json(rows, PRESET_TABLE_COLUMNS)
+
+    def delete_preset_data(self, presetDelete):
+        cur = DB_CONNECTION.cursor()
+        print("IN dataBAse", presetDelete)
+        cur.execute(DELETE_PRESET_QUERY, (presetDelete,))
+        cur.execute(PRESET_QUERY)
+        rows = cur.fetchall()
+        if rows is None or len(rows) == 0:
+            return False
+        else:
+            return self.tupple_to_json(rows, PRESET_TABLE_COLUMNS)
 
     def get_current_user(self, username):
         cur = DB_CONNECTION.cursor()

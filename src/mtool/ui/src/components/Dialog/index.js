@@ -45,6 +45,7 @@ import DeleteIcon from '../../assets/images/Delete-ICON.png';
 import ErrorIcon from '../../assets/images/ERROR-ICON.png';
 import AlertIcon from '../../assets/images/ERROR-ICON_old.png';
 import InfoIcon from '../../assets/images/INFO-ICON.png';
+import {TextField} from "@material-ui/core";
 
 const styles = theme => ({
   title: {
@@ -111,8 +112,8 @@ export const DialogTitle = withStyles(styles)(props => {
 });
 
 const AlertDialog = (props) => {
-  const { classes } = props;
-  const history = useHistory();
+  const { classes} = props;
+  const history = useHistory(); 
 
   const handleConfirm = () => {
     if (props.link) {
@@ -120,9 +121,37 @@ const AlertDialog = (props) => {
     }
     props.handleClose();
   }
+   const handleChange = (event) => {
+    const {value} = event.target;
+    props.setpresetname(value);
+  }
+
+  const handleCreateChange = (event) =>{
+    const {value} = event.target;
+    props.setarrayname(value);
+  }
+
+  const names=
+     props.preset === true ? (
+     <TextField 
+      id="standard-basic"  
+      variant="standard" 
+      name="presetname"
+      label="Preset Name"
+      onChange={handleChange}
+      />       
+     ):props.array === true ? (
+      <TextField 
+      id="standard-basic"  
+      variant="standard" 
+      name="arrayname"
+      label="Array Name"
+      onChange={handleCreateChange}
+      />  
+     ):(null);
 
   const actions =
-    props.type !== 'alert' && props.type !== 'info' && props.type !== 'partialError' ? (
+    props.type !== 'alert' && props.type !== 'info' && props.type !== 'partialError' && props.type !== 'preset' && props.type !== 'arrayFromPreset'? (
       <DialogActions className={classes.actions}>
         <Button
           color="primary"
@@ -144,7 +173,7 @@ const AlertDialog = (props) => {
           Yes
         </Button>
       </DialogActions>
-    ) : (
+    ) : props.type !== 'preset' && props.type !== 'arrayFromPreset' ? (
       <DialogActions className={classes.actions}>
         <Button
           color="primary"
@@ -155,6 +184,41 @@ const AlertDialog = (props) => {
           data-testid="alertbox-ok"
         >
           OK
+        </Button>
+        {/* {props.link ? (
+            <Link to={props.link}>{props.linkText}</Link>
+          ) : null} */}
+      </DialogActions>
+    ): props.type === 'arrayFromPreset' ?(
+      <DialogActions className={classes.actions}>
+        <Button
+          color="primary"
+          variant="contained"
+          onClick={() => {
+             props.onConfirm()
+          }
+        }
+          className={classes.submit}
+          autoFocus
+          data-testid="alertbox-ok"
+        >
+          Create
+        </Button>
+      </DialogActions>
+    ): (
+      <DialogActions className={classes.actions}>
+        <Button
+          color="primary"
+          variant="contained"
+          onClick={() => {
+             props.onConfirm()
+          }
+        }
+          className={classes.submit}
+          autoFocus
+          data-testid="alertbox-ok"
+        >
+          SAVE 
         </Button>
         {/* {props.link ? (
             <Link to={props.link}>{props.linkText}</Link>
@@ -236,6 +300,8 @@ const AlertDialog = (props) => {
               data-testid="alertDescription"
             >
               {props.description}
+              {names}
+
             </span>
           </DialogContentText>
           <p
