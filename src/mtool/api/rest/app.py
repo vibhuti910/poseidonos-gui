@@ -70,6 +70,7 @@ import os
 import eventlet
 import math
 from itertools import chain
+import requests
 
 eventlet.monkey_patch()
 
@@ -857,6 +858,25 @@ def getDevices(current_user):
 def start_telemetry(current_user):
     response = dagent.start_telemetry()
     return toJson(response.json())
+
+@app.route('/api/v1/get-graph-data', methods=['GET'])
+@token_required
+def get_graph_data(current_user):
+    url = 'http://107.99.41.212:9090/api/v1/query_range?query=array_usage_blk_cnt&start=2023-02-06T06:11:31.598Z&end=2023-02-06T12:11:31.598Z&step=15s'
+    r = requests.get(url = url)
+    data = r.json()
+    # print(data)
+    return toJson({})
+
+@app.route('/api/v1/get-metrics-data', methods = ['GET'])
+@token_required
+def get_metrics_data(current_user):
+    print("In metrics data")
+    url = 'http://107.99.41.212:9090/api/v1/label/__name__/values'
+    r = requests.get(url = url)
+    data = r.json()
+    print(type(toJson(data['data'])))
+    return toJson(data['data'])
 
 @app.route('/api/v1/telemetry', methods=['DELETE'])
 @token_required
@@ -2690,4 +2710,7 @@ if __name__ == '__main__':
         host='0.0.0.0',
         debug=False,
         use_reloader=False,
-        port=5000)
+        port=5005,
+        keyfile='domain.key',
+        certfile='domain.crt'
+        )

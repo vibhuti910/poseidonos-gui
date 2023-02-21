@@ -39,6 +39,8 @@ import Header from '../../components/Header';
 import Sidebar from '../../components/Sidebar';
 import Grafana from './Grafana';
 import TelemetryConfiguration from './Configuration';
+import Graphs from './graphs';
+
 
 const styles = (theme) => ({
   content: {
@@ -69,14 +71,20 @@ class Performance extends Component {
       mobileOpen: false
     };
   }
+  
 
   handleTabChange(event, value) {
-    if (value === "grafana") {
-      this.setState({ activeTab: "grafana" });
-      this.props.history.push("/performance/grafana");
-    } else {
-      this.setState({ activeTab: "configure"});
+    if (value === "configure") {
+      this.setState({ activeTab: "configure" });
       this.props.history.push("/performance/configure");
+    }
+    else if(value === "grafana"){
+      this.setState({ activeTab: "grafana"});
+      this.props.history.push("/performance/grafana");
+    }
+    else {
+      this.setState({activeTab: "graphs"});
+      this.props.history.push("/performance/graphs");
     }
   }
 
@@ -115,6 +123,9 @@ class Performance extends Component {
                   <Tab label="grafana" value="grafana" id="grafana" className={(window.location.href.indexOf('grafana') > 0 ? /* istanbul ignore next */ classes.selectedTab : null)}>
                     Grafana
                   </Tab>
+                  <Tab label="graphs" value="graphs" id="graphs" className={(window.location.href.indexOf('graphs') > 0 ? /* istanbul ignore next */ classes.selectedTab : null)}>
+                    Graphs
+                  </Tab>
                 </Tabs>
               </AppBar>
               <Switch>
@@ -125,6 +136,10 @@ class Performance extends Component {
                 <Route path="/performance/grafana">
                   <Grafana url={url} />
                 </Route>
+                <Route path="/performance/graphs">
+                  <Graphs
+                   />
+                </Route>
               </Switch>
             </Grid>
           </main>
@@ -134,4 +149,4 @@ class Performance extends Component {
   }
 }
 
-export default withStyles(styles)(withRouter(Performance));
+export default (withRouter)(withStyles(styles) (Performance));

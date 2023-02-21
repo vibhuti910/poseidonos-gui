@@ -66,3 +66,11 @@ export const openTelemetryAlert = (payload) => {
         payload
     }
 }
+
+export const fetchMetricsDetails = (payload) =>{
+    return {
+        type: actionTypes.FETCH_METRICS_DATA,
+        payload
+    }
+
+}

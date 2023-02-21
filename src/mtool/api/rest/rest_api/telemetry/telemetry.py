@@ -149,6 +149,7 @@ def get_device_metrics_values(ip, port, metrics):
         for metric in metrics:
             prom_url += metric + "|"
         prom_url += "\",job=\"poseidonos\"},\"name_label\",\"$1\",\"__name__\",\"1s\")"
+        print("URLL",prom_url)
         response = requests.get(prom_url, timeout=TIME_OUT)
         response = json.loads(response.content)
         return response

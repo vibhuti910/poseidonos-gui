@@ -486,6 +486,7 @@ class Volume extends Component {
                       {(this.props.posMountStatus === "EXIST_NORMAL") ? (
                         <Typography style={{ color: "#b11b1b" }} variant="h5" align="center">Poseidon OS is not Mounted !!!</Typography>
                       ) : null}
+                      
                     </Grid>
                   </Grid>
                 </Route>
@@ -767,7 +768,7 @@ class Volume extends Component {
                 <MToolLoader text={this.props.loadText} />
               ) : null}
             </Grid>
-          </main>
+          </main> 
         </Box>
       </ThemeProvider>
     );
@@ -775,6 +776,7 @@ class Volume extends Component {
 }
 
 const mapStateToProps = (state) => {
+  
   return {
     ssds: state.storageReducer.ssds,
     metadisks: state.storageReducer.metadisks,

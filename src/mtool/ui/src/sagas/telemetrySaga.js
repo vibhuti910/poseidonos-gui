@@ -136,10 +136,64 @@ export function* stopTelemetry() {
         yield put(actionCreators.stopLoader());
     }
 }
+export function* getGraphData(){
+    try{
+        const response = yield call([axios, axios.get], '/api/v1/get-graph-data', {
+            headers: {
+                "x-access-token": localStorage.getItem("token"),
+            },
+        });
+        const result = response.data;
+        console.log(result)
+        
+    }catch(e){
+        yield put(actionCreators.openTelemetryAlert({
+            title: "Graph Data",
+            open: true,
+            errorMsg: "Failed to get graph data",
+            type: "alert"
+        }));
+
+    }finally{
+        console.log("In finally while getting graph data")
+    }
+}
+
+export function* getMetricsData(){
+    try{
+        const response = yield call([axios, axios.get], '/api/v1/get-metrics-data', {
+            headers: {
+                "x-access-token": localStorage.getItem("token"),
+            },
+        });
+        const result = response.data;
+        console.log(result)
+        if (response.status === 200 && response.data)
+        {
+            yield put(
+                actionCreators.fetchMetricsDetails(response.data)
+            );    
+        } 
+        console.log("No error")  
+        
+    }catch(e){
+        yield put(actionCreators.openTelemetryAlert({
+            title: "Metrics Data",
+            open: true,
+            errorMsg: "Failed to get graph data",
+            type: "alert"
+        }));
+
+    }finally{
+        console.log("In finally while getting Metrics data")
+    }
+}
 
 export function* telemetryWatcher() {
     yield takeEvery(actionTypes.SAGA_FETCH_TELEMETRY_PROPERTIES, fetchTelemetryProperties);
     yield takeEvery(actionTypes.SAGA_START_TELEMETRY, startTelemetry);
     yield takeEvery(actionTypes.SAGA_STOP_TELEMETRY, stopTelemetry);
     yield takeEvery(actionTypes.SAGA_SAVE_TELEMETRY_CONFIG, setTelemetryProperties);
+    yield takeEvery(actionTypes.SAGA_FETCH_GRAPH_DATA, getGraphData);
+    yield takeEvery(actionTypes.SAGA_FETCH_METRICS_DATA, getMetricsData)
 }

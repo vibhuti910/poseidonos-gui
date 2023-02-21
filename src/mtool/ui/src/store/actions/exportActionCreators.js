@@ -183,4 +183,5 @@ export {
     setTelemetryStatus,
     setTelemetryProperties,
     openTelemetryAlert,
+    fetchMetricsDetails,
 } from "./telemetryActions";

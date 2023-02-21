@@ -38,7 +38,9 @@ const initialState = {
     actualProperties: [],
     alert: {},
     loading: false,
-    loadText: ""
+    loadText: "",
+    metrics: []
+
 }
 
 const telemetryReducer = (state = initialState, action) => {
@@ -119,6 +121,12 @@ const telemetryReducer = (state = initialState, action) => {
                 alert: {
                     ...action.payload
                 }
+            }
+        }
+        case actionTypes.FETCH_METRICS_DATA: {
+            return {
+                ...state,
+                metrics:action.payload
             }
         }
         default:

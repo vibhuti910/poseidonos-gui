@@ -16,7 +16,7 @@
     "c3": "^0.7.11",
     "contentful": "^7.13.0",
     "core-js": "^3.6.2",
-    "d3": "^5.15.0",
+    "d3": "^5.16.0",
     "d3-array": "2.3.1",
     "d3-axis": "1.0.12",
     "d3-format": "^1.4.3",
@@ -63,7 +63,7 @@
     ]
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "HTTPS=true react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "lint": "eslint ./src/**/*.{js,jsx}",
@@ -123,7 +123,7 @@
     "lint-staged": "^9.5.0",
     "prettier": "^1.19.1"
   },
-  "proxy": "http://localhost:5000",
+  "proxy": "https://localhost:5005",
   "husky": {
     "hooks": {
       "pre-commit": "npm run lint"

@@ -613,6 +613,8 @@ describe("<Storage Management />", () => {
     fireEvent.click(getByText("OK"));
   });
 
+
+
   it("should show alert while creating an array if wrong values given", async () => {
     mock
       .onGet(/api\/v1.0\/get_devices\/*/)

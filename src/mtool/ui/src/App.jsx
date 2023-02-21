@@ -58,7 +58,8 @@ const App = () => {
             </ErrorBoundary>
           )}
         />
-        <PrivateRoute
+        <PrivateRoute 
+        
           className="App-content"
           path="/performance*"
           exact
