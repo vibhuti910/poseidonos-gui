@@ -104,19 +104,6 @@ USER_ALERTS_TABLE_COLUMNS = (
     "alertRange",
     "active")
 
-<<<<<<< Updated upstream
-=======
-PRESET_TABLE_COLUMNS = (
-    "presetname",
-    "faulttolerancelevel",
-    "storagedisks",
-    "sparedisks",
-    "writebufferpath",
-    "username"
-
-)
-
->>>>>>> Stashed changes
 TELEMETRY_TABLE_QUERY = "CREATE TABLE IF NOT EXISTS " + TELEMETRY_TABLE + " (ip text,port text);"
 
 USER_TABLE_QUERY = "CREATE TABLE IF NOT EXISTS " + USER_TABLE + " (" + USER_TABLE_COLUMNS[0] + " text," + USER_TABLE_COLUMNS[1] + " text," + USER_TABLE_COLUMNS[2] + " text," + USER_TABLE_COLUMNS[3] + \
@@ -132,11 +119,6 @@ COUNTERS_TABLE_QUERY = "CREATE TABLE IF NOT EXISTS " + \
     COUNTERS_TABLE + " (_id text,counter integer);"
 TIMESTAMP_TABLE_QUERY = "CREATE TABLE IF NOT EXISTS " + \
     IBOFOS_TIMESTAMP_TABLE + " (_id text,lastRunningTime text);"
-<<<<<<< Updated upstream
-=======
-USER_PRESET_QUERY = "CREATE TABLE IF NOT EXISTS " + \
-    USER_PRESET_TABLE + " (presetname,faulttolerancelevel,storagedisks,sparedisks,writebufferpath,username);"
->>>>>>> Stashed changes
 
 TELEMETRY_QUERY = "SELECT * FROM " + TELEMETRY_TABLE
 INSERT_TELEMETRY_QUERY = "INSERT INTO " + TELEMETRY_TABLE + " (ip,port) VALUES(?,?)"
@@ -155,15 +137,6 @@ UPDATE_TIME_QUERY = "UPDATE " + IBOFOS_TIMESTAMP_TABLE + \
 SELECT_SMTP_QUERY = "SELECT _id FROM " + SMTP_TABLE + " WHERE lower(_id)=?"
 INSERT_SMTP_IP_QUERY = "INSERT INTO " + SMTP_TABLE + \
     " (_id,serverip,serverport) VALUES(?,?,?)"
-<<<<<<< Updated upstream
-=======
-PRESET_QUERY = "SELECT * FROM " + USER_PRESET_TABLE  + " WHERE username=?"
-DUPLICATE_PRESET_QUERY = "SELECT * FROM " + USER_PRESET_TABLE + " WHERE presetname = ?"
-INSERT_USER_PRESET_TABLE_QUERY = "INSERT INTO " + USER_PRESET_TABLE + \
-    " (presetname,faulttolerancelevel,storagedisks,sparedisks,writebufferpath,username) VALUES(?,?,?,?,?,?)"
-UPDATE_USER_PRESET_TABLE_QUERY = "UPDATE " + USER_PRESET_TABLE + \
-    " SET presetname = ?, faulttolerancelevel = ?, storagedisks = ?, sparedisks = ?, writebufferpath = ?, username = ?"
->>>>>>> Stashed changes
 UPDATE_SMTP_QUERY = "UPDATE " + SMTP_TABLE + \
     " SET _id = ?, serverip = ?, serverport = ? where lower(_id) = ?"
 EMAILLIST_QUERY = "SELECT * FROM " + EMAILLIST_TABLE
@@ -264,38 +237,6 @@ class SQLiteConnection:
         else:
             cur.execute(UPDATE_TELEMETRY_QUERY, (ip, port))
         DB_CONNECTION.commit()
-<<<<<<< Updated upstream
-=======
-    
-    def insert_preset_data(self, presetname, faulttolerancelevel, storagedisks, sparedisks, writebufferpath, username):
-        cur = DB_CONNECTION.cursor()
-        cur.execute(DUPLICATE_PRESET_QUERY, (presetname,))
-        rows = cur.fetchall()
-        if rows is None or len(rows) != 0:
-            return False
-        cur.execute(INSERT_USER_PRESET_TABLE_QUERY, (presetname, faulttolerancelevel, storagedisks, sparedisks,writebufferpath, username ))
-        DB_CONNECTION.commit()
-    
-    def get_preset_data(self, userNameId):
-        cur = DB_CONNECTION.cursor()
-        cur.execute(PRESET_QUERY, (userNameId, ))
-        rows = cur.fetchall()
-        if rows is None or len(rows) == 0:
-            return False
-        else:
-            return self.tupple_to_json(rows, PRESET_TABLE_COLUMNS)
-
-    def delete_preset_data(self, presetDelete):
-        cur = DB_CONNECTION.cursor()
-        print("IN dataBAse", presetDelete)
-        cur.execute(DELETE_PRESET_QUERY, (presetDelete,))
-        cur.execute(PRESET_QUERY)
-        rows = cur.fetchall()
-        if rows is None or len(rows) == 0:
-            return False
-        else:
-            return self.tupple_to_json(rows, PRESET_TABLE_COLUMNS)
->>>>>>> Stashed changes
 
     def delete_telemetery_url(self):
         cur = DB_CONNECTION.cursor()
