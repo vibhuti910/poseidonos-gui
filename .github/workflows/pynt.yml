@@ -1,6 +1,6 @@
 name: Run Pynt API Security Tests
 uses: pynt-io/pynt-newman@latest
 with:
-  base-path: '$GITHUB_WORKSPACE/src/dagent/postman'
+  base-path: 'https://github.com/vibhuti910/poseidonos-gui/tree/main/src/dagent/postman'
   postman-collection-filename: 'D-Agent.postman_collection.json'
   postman-environment-filename: 'D-Agent.postman_environment.json'
