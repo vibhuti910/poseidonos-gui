@@ -93,6 +93,7 @@ class Subsystem extends Component {
         this.closeAlert = this.closeAlert.bind(this);
         this.openAction = this.openAction.bind(this);
         this.closeAction = this.closeAction.bind(this);
+        this.deleteListener = this.deleteListener.bind(this);
     }
 
     componentDidMount() {
@@ -105,6 +106,10 @@ class Subsystem extends Component {
         });
     }
 
+    deleteListener(ip){
+        console.log("IP from the main branch",ip)
+        this.props.Delete_Listener({ip:ip})
+    }
     openCreateSubsystemDialog() {
         this.setState({
             dialogOpen: true
@@ -182,10 +187,12 @@ class Subsystem extends Component {
                                 }
                             }]}
                             detailPanel={[{
-                                tooltip: "Show Subsystem Details",
+                                tooltip: "Show Subsye4stem Details",
                                 render: rowData => (
                                     <SubsystemDetails
                                         data={rowData}
+                                        openAction={this.openAction}
+                                        deleteListener = {this.deleteListener}
                                     />
                                 )
                             }]}
@@ -248,6 +255,8 @@ const mapDispatchToProps = (dispatch) => ({
         dispatch({ type: actionTypes.SAGA_CREATE_SUBSYSTEM, payload }),
     Delete_Subsystem: (payload) =>
         dispatch({ type: actionTypes.SAGA_DELETE_SUBSYSTEM, payload }),
+    Delete_Listener: (payload) =>
+        dispatch({type:actionTypes.SAGA_DELETE_LISTENER,payload}),
     Close_Alert: () =>
         dispatch({ type: actionTypes.CLOSE_SUBSYSTEM_ALERT })
 });

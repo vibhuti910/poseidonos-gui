@@ -1058,6 +1058,7 @@ def list_subsystem(current_user):
     try:
         resp = dagent.list_subsystem()
         resp = resp.json()
+        print(resp)
         for subsystem in resp["result"]["data"]["subsystemlist"]:
             if subsystem["subtype"] == "NVMe" and "namespaces" in subsystem:
                 namespaces = subsystem["namespaces"]
@@ -1065,6 +1066,7 @@ def list_subsystem(current_user):
                     arrayname = "_".join(
                         namespaces[0]["bdevName"].split("_")[2:])
                     subsystem["array"] = arrayname
+        
         return toJson(resp)
     except Exception as e:
         print("Exception in list subsystem " + e)

@@ -31,8 +31,8 @@
  */
 
 import React, { useState } from 'react';
-import { Grid, Typography, withStyles, ThemeProvider } from '@material-ui/core';
-import { Add, Check, Clear, FirstPage, LastPage, Search, ChevronRight, ChevronLeft, Remove, ArrowUpward } from '@material-ui/icons';
+import { Grid, Typography, withStyles, ThemeProvider,Tooltip,IconButton } from '@material-ui/core';
+import { Add, Check, Clear, FirstPage, LastPage, Search, ChevronRight, ChevronLeft, Remove, ArrowUpward, Delete } from '@material-ui/icons';
 import MaterialTable from '@material-table/core';
 import { customTheme, TableTheme } from '../../theme';
 import Popup from '../Popup';
@@ -87,7 +87,25 @@ const SubsystemDetails = (props) => {
   }, {
     title: "Family",
     field: "addressFamily"
-  }];
+  }, {
+    title: "Action",
+    render: (rowData) => (
+      <Tooltip title="Delete Subsystem">
+          <IconButton
+            onClick={() => {
+              props.openAction("Delete Listener",
+                  `Are you sure you want to delete the listener ${rowData.targetAddress}`,
+                  () => {
+                    props.deleteListener(rowData.targetAddress)
+                  })
+            }}
+          >
+              <Delete />
+          </IconButton>
+      </Tooltip>
+  )
+  }
+  ];
   const namespaceColumns = [{
     title: "BDEV Name",
     field: "bdevName"
